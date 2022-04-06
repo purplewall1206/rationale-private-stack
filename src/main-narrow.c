@@ -15,6 +15,7 @@ int debug = 0;
 
 #define ns_exit_s \
 		if (!debug) {\
+            asm volatile ("mov %%rsp, %0": "=m"(RSP0):);\
 			asm volatile ("mov %0, %%rsp": :""(RSP1));\
 		}
         
@@ -28,6 +29,7 @@ int debug = 0;
 
 #define s_exit_ns \
 		if (!debug) {\
+            asm volatile ("mov %%rsp, %0" : "=m"(RSP1):);\
 			asm volatile ("mov %0, %%rsp" : :""(RSP0));\
 		}
         
