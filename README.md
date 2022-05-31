@@ -1,6 +1,23 @@
 # rationale-private-stack
 
 
+```
+stack_switch()
+call extension()
+stack_switch()
+```
+
+我们可以确定，call extension之前切换栈，不影响参数传递，哪怕参数是个struct需要压栈
+
+但是我们不确定，调用之后，比如返回了一个struct，我们应该如何处理返回的struct
+
+这里需要反编译，看看怎么办，可能需要copy一下
+
+之后把这玩意放进kernel里面试试看
+
+
+
+-------------------------------
 A simple example of a x64 private stack for sensitive functions
 
 只考虑参数6个以内，返回值8字节以内的情况，即只需要移动RSP寄存器即可

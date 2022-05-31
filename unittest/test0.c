@@ -28,6 +28,7 @@ unsigned long main()
     // unsigned long bb = gets.b;
     // unsigned long cc = gets.c;
     int a = 0, b = 1, c = 2;
+    struct s gets = gens(a, b, c);
     params8(a, b ,c, a, b, c, a, b);
     return 0;
 }
