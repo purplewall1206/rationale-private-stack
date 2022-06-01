@@ -16,7 +16,6 @@ stack_switch()
 之后把这玩意放进kernel里面试试看
 
 
-return call()尾调用怎么解决？
 
 RDI, RSI, RDX, RCX, R8, R9,栈
 
@@ -25,10 +24,6 @@ ret -> pop ip
 leave -> mov %ebp,%esp + pop %ebp
 
 -------------------------------
-
-# tail call
-
-
 
 
 
@@ -51,6 +46,15 @@ leave -> mov %ebp,%esp + pop %ebp
         rcx: 0x2
 
 ```
+
+然而这在private stack处理时有个恶心的后果，就是比如caller是kernel，callee是extension，那么extension需要直接取写caller的栈
+
+解决办法是llvm-ir基本上能够识别这种情况，那么当识别为sret时，自动替换指针
+```
+define dso_local void @gens(%struct.s* noalias sret(%struct.s) align 8 %0, i64 %1, i64 %2, i64 %3) #0 {
+```
+
+
 -------------------------------
 
 # 当struct作为参数时
@@ -76,6 +80,56 @@ leave -> mov %ebp,%esp + pop %ebp
         rdx: 0x1
         rcx: 0x2
 
+```
+
+-------------------------------
+
+# tail call
+
+
+一般在递归的时候用
+
+没优化：
+```
+function recsum(x) {
+    if (x === 0) {
+        return 0;
+    } else {
+        return x + recsum(x - 1);
+    }
+}
+
+recsum(5)
+5 + recsum(4)
+5 + (4 + recsum(3))
+5 + (4 + (3 + recsum(2)))
+5 + (4 + (3 + (2 + recsum(1))))
+5 + (4 + (3 + (2 + (1 + recsum(0)))))
+5 + (4 + (3 + (2 + (1 + 0))))
+5 + (4 + (3 + (2 + 1)))
+5 + (4 + (3 + 3))
+5 + (4 + 6)
+5 + 10
+15
+```
+
+优化之后：
+```
+function tailrecsum(x, running_total = 0) {
+    if (x === 0) {
+        return running_total;
+    } else {
+        return tailrecsum(x - 1, running_total + x);
+    }
+}
+
+tailrecsum(5, 0)
+tailrecsum(4, 5)
+tailrecsum(3, 9)
+tailrecsum(2, 12)
+tailrecsum(1, 14)
+tailrecsum(0, 15)
+15
 ```
 
 
