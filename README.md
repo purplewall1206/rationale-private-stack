@@ -16,6 +16,68 @@ stack_switch()
 之后把这玩意放进kernel里面试试看
 
 
+return call()尾调用怎么解决？
+
+RDI, RSI, RDX, RCX, R8, R9,栈
+
+call -> push ip + jmp func
+ret -> pop ip
+leave -> mov %ebp,%esp + pop %ebp
+
+-------------------------------
+
+# tail call
+
+
+
+
+
+-------------------------------
+
+# 当struct作为返回值时
+
+大致分成两种情况，
+
+- 如果struct小，那么可能会拆成几个寄存器返回，
+- 如果struct比较大，通常在前一个函数的栈里面分配一块空间，然后把这块空间的地址当做参数传递给被调用函数，函数的返回值 $rax，保存了前一个栈里面空间的地址
+
+```
+//    struct s gets = gens(a, b, c);
+
+ ► 0x55555555522f <main+70>    callq  gens                <gens>
+        rdi: 0x7fffffffdd50 ◂— 0x0 // 这里就是struct s的地址，在上一个函数的栈里面
+        rsi: 0x0
+        rdx: 0x1
+        rcx: 0x2
+
+```
+-------------------------------
+
+# 当struct作为参数时
+
+被分解成struct的元素个参数，全部压栈，略微修改刚刚的例子
+
+```
+    struct s d = {.a = 4, .b = 5, .c = 6};
+    struct s gets = gens1(a, b, c, d);
+
+   0x5555555552af <main+75>     leaq   -0x20(%rbp), %rax // 上个函数的stack里面，给struct返回值分配的空间
+   0x5555555552b3 <main+79>     movq   -0x48(%rbp), %rcx // arg2
+   0x5555555552b7 <main+83>     movq   -0x50(%rbp), %rdx // arg1
+   0x5555555552bb <main+87>     movq   -0x58(%rbp), %rsi // arg0
+   0x5555555552bf <main+91>     subq   $8, %rsp
+   0x5555555552c3 <main+95>     pushq  -0x30(%rbp)      // d.c
+   0x5555555552c6 <main+98>     pushq  -0x38(%rbp)      // d.b
+   0x5555555552c9 <main+101>    pushq  -0x40(%rbp)      // d.a
+   0x5555555552cc <main+104>    movq   %rax, %rdi       // leaq 读取的struct的返回地址
+ ► 0x5555555552cf <main+107>    callq  gens1                <gens1>
+        rdi: 0x7fffffffdd50 ◂— 0x0                      // 这里就是struct s的地址，在上一个函数的栈里面
+        rsi: 0x0
+        rdx: 0x1
+        rcx: 0x2
+
+```
+
 
 -------------------------------
 A simple example of a x64 private stack for sensitive functions
