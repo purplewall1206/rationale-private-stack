@@ -1,5 +1,13 @@
 # rationale-private-stack
 
+**此处有个非常诡异的问题： 新的stack在使用之前，一定一定要把RSP指在stack中间，如果一板一眼把之前偏移量平移过来，反而不太对!!!**
+
+```c
+unsigned long *addr = (unsigned long*) malloc(4096 * 4);
+RSP1 = (unsigned long)(addr + 4096 * 2);
+```
+**一定要注意这里！！！**
+
 
 ```
 stack_switch()
